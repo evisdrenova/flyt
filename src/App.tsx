@@ -14,9 +14,8 @@ import {
   Thread,
   Window,
 } from "stream-chat-react";
-import "stream-chat-react/dist/css/index.css";
 import "./App.css";
-import { AuthResponse } from "./types";
+import { AuthResponse, InitChatResponse } from "./types";
 import type { Channel as StreamChannel } from "stream-chat";
 
 export default function App() {
@@ -29,29 +28,22 @@ export default function App() {
   const [username, setUsername] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [apiKey, setApiKey] = useState<string>("");
-
-  // Fetch API key from backend
-  useEffect(() => {
-    async function fetchApiKey() {
-      try {
-        const key = await invoke<string>("get_stream_api_key");
-        setApiKey(key);
-      } catch (err) {
-        console.error("Failed to fetch API key:", err);
-        setError("Failed to connect to application server");
-      }
-    }
-
-    fetchApiKey();
-  }, []);
 
   // Initialize Stream Chat client when user credentials are available
   useEffect(() => {
     async function initializeChat() {
-      if (!userId || !userToken || !apiKey) return;
+      if (!userId || !userToken) return;
 
       try {
+        // Get client details from backend instead of using API key directly
+        const { apiKey, channelId } = await invoke<InitChatResponse>(
+          "initialize_chat",
+          {
+            userId,
+            username,
+          }
+        );
+
         const client = StreamChat.getInstance(apiKey);
         await client.connectUser(
           {
@@ -64,7 +56,7 @@ export default function App() {
         setChatClient(client);
 
         // Auto-join a general channel
-        const channel = client.channel("team", "vista", {
+        const channel = client.channel("team", channelId, {
           name: "General",
           members: [userId],
         });
@@ -89,7 +81,7 @@ export default function App() {
         });
       }
     };
-  }, [userId, userToken, username, apiKey]);
+  }, [userId, userToken, username]);
 
   // Handle login
   async function handleLogin(e: React.FormEvent) {
@@ -149,8 +141,8 @@ export default function App() {
   // Render login form if not authenticated
   if (!chatClient) {
     return (
-      <div className="login-container">
-        <h1>QuickChat</h1>
+      <div className="container bg-zinc-800">
+        <div className="text-gray-200">QuickChat</div>
         {error && <div className="error">{error}</div>}
         <form onSubmit={handleLogin}>
           <input
@@ -168,7 +160,6 @@ export default function App() {
     );
   }
 
-  // Render chat interface if authenticated
   return (
     <div className="chat-container">
       <Chat client={chatClient} theme="messaging dark">

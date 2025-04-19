@@ -1,4 +1,4 @@
-// src-tauri/src/stream.rs
+// file used to define stream commands
 
 use crate::auth::{create_token, generate_user_id};
 use crate::config::Config;
@@ -44,6 +44,18 @@ pub struct CreateChannelRequest {
     pub channel_name: String,
     pub members: Vec<String>,
     pub user_id: String,
+}
+
+#[derive(Serialize)]
+pub struct InitChatResponse {
+    pub api_key: String,
+    pub channel_id: String,
+}
+
+#[derive(Deserialize)]
+pub struct InitChatRequest {
+    pub user_id: String,
+    pub username: String,
 }
 
 // Get Stream Chat API key for the frontend
@@ -130,4 +142,20 @@ pub async fn create_channel(
         )
         .await
         .map_err(|e| format!("Failed to create channel: {}", e))
+}
+
+#[tauri::command]
+pub async fn initialize_chat(
+    app_state: State<'_, AppState>,
+    request: InitChatRequest,
+) -> Result<InitChatResponse, String> {
+    // Default channel ID - this could be made more sophisticated
+    // by finding the user's most recent channel or preferred channel
+    let default_channel_id = "general".to_string();
+
+    // Return only what the client needs to establish a connection
+    Ok(InitChatResponse {
+        api_key: app_state.config.stream_api_key.clone(),
+        channel_id: default_channel_id,
+    })
 }

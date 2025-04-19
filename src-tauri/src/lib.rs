@@ -26,6 +26,7 @@ pub fn run() {
             stream::send_message,
             stream::create_channel,
             stream::get_stream_api_key,
+            stream::initialize_chat,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

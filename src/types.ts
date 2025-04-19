@@ -1,3 +1,6 @@
+// src/types.ts
+import { StreamChat, UserResponse } from "stream-chat";
+
 export interface User {
   id: string;
   name: string;
@@ -44,6 +47,11 @@ export interface Channel {
 export interface AuthResponse {
   userId: string;
   token: string;
+}
+
+export interface InitChatResponse {
+  apiKey: string;
+  channelId: string;
 }
 
 export interface CreateChannelRequest {
