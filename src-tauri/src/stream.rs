@@ -10,7 +10,7 @@ use tauri::State;
 
 // Store active user sessions
 pub struct AppState {
-    users: Mutex<HashMap<String, String>>, // username -> user_id
+    pub users: Mutex<HashMap<String, String>>, // username -> user_id
     pub config: Config,
 }
 
@@ -70,6 +70,8 @@ pub async fn authenticate_user(
     app_state: State<'_, AppState>,
     request: AuthRequest,
 ) -> Result<AuthResponse, String> {
+    println!("trying to auth user: {}", request.username.trim());
+
     let username = request.username.trim();
 
     if username.is_empty() {

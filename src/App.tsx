@@ -26,7 +26,7 @@ export default function App() {
   const [userId, setUserId] = useState<string>("");
   const [userToken, setUserToken] = useState<string>("");
   const [username, setUsername] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   // Initialize Stream Chat client when user credentials are available
@@ -83,9 +83,13 @@ export default function App() {
     };
   }, [userId, userToken, username]);
 
+  console.log("user id", userId, userToken);
+
   // Handle login
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+
+    console.log("try to login");
 
     if (!username.trim()) return;
 

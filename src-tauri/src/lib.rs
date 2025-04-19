@@ -1,4 +1,8 @@
+use std::{collections::HashMap, sync::Mutex};
+
 use config::Config;
+use stream::AppState;
+use tauri::Manager;
 
 mod auth;
 mod config;
@@ -19,7 +23,20 @@ pub fn run() {
     config.display_debug_info();
 
     tauri::Builder::default()
+        .setup(|app| {
+            #[cfg(debug_assertions)] // only include this code on debug builds
+            {
+                let window = app.get_webview_window("main").unwrap();
+                window.open_devtools();
+                window.close_devtools();
+            }
+            Ok(())
+        })
         .plugin(tauri_plugin_opener::init())
+        .manage(AppState {
+            users: Mutex::new(HashMap::new()),
+            config,
+        })
         .invoke_handler(tauri::generate_handler![
             stream::authenticate_user,
             stream::stream_token,
