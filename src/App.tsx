@@ -15,7 +15,7 @@ import {
   Window,
 } from "stream-chat-react";
 import "./App.css";
-import { AuthResponse, InitChatResponse } from "./types";
+import { AuthResponse, AuthRequest, InitChatResponse } from "./types";
 import type { Channel as StreamChannel } from "stream-chat";
 
 export default function App() {
@@ -96,11 +96,15 @@ export default function App() {
     try {
       setIsLoading(true);
 
+      const request: AuthRequest = {
+        username: username,
+      };
+
       // Call to Tauri backend to authenticate user and get token
       const { userId, token } = await invoke<AuthResponse>(
         "authenticate_user",
         {
-          username: username,
+          request: request,
         }
       );
 
