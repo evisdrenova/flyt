@@ -27,9 +27,11 @@ pub fn create_token(user_id: &str, api_secret: &str) -> Result<String> {
         .expect("valid timestamp")
         .timestamp();
 
+    let binding = expiration.to_string();
+
     let mut claims = HashMap::new();
     claims.insert("user_id", user_id);
-    claims.insert("exp", &expiration.to_string());
+    claims.insert("exp", &binding);
 
     // Create and sign JWT
     let token_str = claims
