@@ -24,5 +24,4 @@ jwt = "0.16.0"
 uuid = { version =  "1.16.0", features = ["v5"]}
 anyhow = "1.0.98"
 chrono = "0.4.40"
-reqwest = "0.12.15"
-
+reqwest = { version = "0.12.15", features = ["json"] }
