@@ -7,7 +7,6 @@ use tauri::Manager;
 mod auth;
 mod config;
 mod stream;
-mod stream_chat;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -38,8 +37,8 @@ pub fn run() {
             config,
         })
         .invoke_handler(tauri::generate_handler![
-            stream::send_message,
-            stream::create_channel,
+            // stream::send_message,
+            // stream::create_channel,
             stream::login_and_initialize
         ])
         .run(tauri::generate_context!())

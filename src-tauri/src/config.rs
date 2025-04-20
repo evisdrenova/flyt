@@ -1,8 +1,10 @@
 // src-tauri/src/config.rs
 use anyhow::{anyhow, Result};
 use dotenvy::dotenv;
+use serde::{Deserialize, Serialize};
 use std::env;
 
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     pub stream_api_key: String,
     pub stream_api_secret: String,
@@ -29,10 +31,12 @@ impl Config {
             return Err(anyhow!("STREAM_API_SECRET cannot be empty"));
         }
 
-        Ok(Config {
+        let config: Config = Config {
             stream_api_key,
             stream_api_secret,
-        })
+        };
+
+        Ok(config)
     }
 
     #[cfg(debug_assertions)]
