@@ -38,12 +38,9 @@ pub fn run() {
             config,
         })
         .invoke_handler(tauri::generate_handler![
-            stream::authenticate_user,
-            stream::stream_token,
             stream::send_message,
             stream::create_channel,
-            stream::get_stream_api_key,
-            stream::initialize_chat,
+            stream::login_and_initialize
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

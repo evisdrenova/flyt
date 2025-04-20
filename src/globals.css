@@ -98,7 +98,7 @@
   }
 }
 
-/* Utility classes */
+/* Utility classes
 .dragable {
   -webkit-app-region: drag;
 }
@@ -125,6 +125,7 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--border));
 }
+*/
 
 /* Toast styling */
 [data-sonner-toast][data-styled="true"] {

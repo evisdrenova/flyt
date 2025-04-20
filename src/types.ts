@@ -1,3 +1,6 @@
+// src/types.ts
+import { StreamChat, UserResponse } from "stream-chat";
+
 export interface User {
   id: string;
   name: string;
@@ -27,39 +30,38 @@ export interface Attachment {
   mime_type?: string;
 }
 
-export interface Channel {
+export interface ChannelData {
   id: string;
-  type: "team" | "messaging";
+  type: string;
   name: string;
-  image?: string;
-  description?: string;
-  member_count: number;
-  created_by: User;
-  created_at: string;
-  updated_at: string;
-  last_message_at?: string;
-  unread_count?: number;
+  members: string[];
+  created_at?: string;
+  updated_at?: string;
 }
-export interface AuthRequest {
-  username: string;
+
+export interface ClientConfig {
+  apiKey: string;
+  userToken: string;
+  channels: ChannelData[];
 }
+
 export interface AuthResponse {
   userId: string;
   token: string;
 }
 
-export interface InitChatResponse {
-  apiKey: string;
-  channelId: string;
+export interface AuthRequest {
+  username: string;
 }
 
 export interface CreateChannelRequest {
   channelId: string;
   channelName: string;
-  members: string[];
+  userId: string;
 }
 
 export interface SendMessageRequest {
   channelId: string;
   message: string;
+  userId: string;
 }
