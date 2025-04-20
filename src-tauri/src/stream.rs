@@ -15,9 +15,6 @@ pub struct AppState {
 // =========== Type Definitions ===========
 #[derive(Debug, Serialize)]
 pub struct ChannelData {
-    pub id: String,
-    pub type_: String, // 'type' is a keyword in Rust
-    #[serde(rename = "type")] // Rename to "type" in JSON output
     pub name: String,
     pub members: Vec<String>,
 }
@@ -77,8 +74,6 @@ fn parse_channel_data(value: &serde_json::Value) -> Vec<ChannelData> {
                 };
 
                 channels.push(ChannelData {
-                    id: id.to_string(),
-                    type_: channel_type.to_string(),
                     name: name.to_string(),
                     members,
                 });
@@ -147,8 +142,6 @@ pub async fn login_and_initialize(
         {
             Ok(_) => {
                 channels.push(ChannelData {
-                    id: "general".to_string(),
-                    type_: "team".to_string(),
                     name: "General".to_string(),
                     members: vec![user_id.clone()],
                 });

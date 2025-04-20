@@ -25,9 +25,20 @@ pub struct StreamChatClient {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ChannelMember {
-    user_id: String,
+struct ChannelData {
     created_by_id: String,
+    name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ChannelMember {
+    user_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct CreateChannelRequest {
+    data: ChannelData,
+    members: ChannelMember,
 }
 
 impl StreamChatClient {
@@ -150,29 +161,23 @@ impl StreamChatClient {
         member: &str,
         created_by_id: &str,
     ) -> Result<Value> {
-        let path = format!("/channels/messaging/general/query");
+        let path = format!("/channels/messaging/{}/query", channel_name);
 
-        // let payload = json!({
-        //     "created_by_id": created_by_id,
-        //     "name": channel_name,
-        //     "members": ChannelMember{
-        //         user_id: member.to_string(),
-        //         created_by_id: created_by_id.to_string()
-        //     }
-        // });
-
-        let payload = json!({
-            "data": {
-                "created_by_id": created_by_id,
-                "name": channel_name
+        // Create the payload using the struct
+        let payload = CreateChannelRequest {
+            data: ChannelData {
+                created_by_id: created_by_id.to_string(),
+                name: channel_name.to_string(),
             },
-            "members": {
-                    "user_id": member
+            members: ChannelMember {
+                user_id: member.to_string(),
+            },
+        };
 
-        }
-        });
+        // Convert the struct to a JSON value
+        let payload_json = serde_json::to_value(payload)?;
 
-        self.execute_request(reqwest::Method::POST, &path, Some(payload), None)
+        self.execute_request(reqwest::Method::POST, &path, Some(payload_json), None)
             .await
     }
 
