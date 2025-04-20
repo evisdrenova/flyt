@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use hmac::{Hmac, Mac};
 use jwt::SignWithKey;
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::Sha256;
 use std::time::UNIX_EPOCH;
@@ -22,6 +22,12 @@ pub struct StreamChatClient {
     base_url: String,
     client: Client,
     pub auth_token: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChannelMember {
+    user_id: String,
+    created_by_id: String,
 }
 
 impl StreamChatClient {
@@ -140,17 +146,30 @@ impl StreamChatClient {
     // Create a new channel
     pub async fn create_channel(
         &self,
-        channel_id: &str,
         channel_name: &str,
-        members: &[String],
+        member: &str,
         created_by_id: &str,
     ) -> Result<Value> {
-        let path = format!("/channels/team/{}", channel_id);
+        let path = format!("/channels/messaging/general/query");
+
+        // let payload = json!({
+        //     "created_by_id": created_by_id,
+        //     "name": channel_name,
+        //     "members": ChannelMember{
+        //         user_id: member.to_string(),
+        //         created_by_id: created_by_id.to_string()
+        //     }
+        // });
 
         let payload = json!({
-            "created_by_id": created_by_id,
-            "name": channel_name,
-            "members": members
+            "data": {
+                "created_by_id": created_by_id,
+                "name": channel_name
+            },
+            "members": {
+                    "user_id": member
+
+        }
         });
 
         self.execute_request(reqwest::Method::POST, &path, Some(payload), None)

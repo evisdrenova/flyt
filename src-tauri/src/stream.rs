@@ -142,11 +142,10 @@ pub async fn login_and_initialize(
     // If no channels exist, create a default one
     if channels.is_empty() {
         match client
-            .create_channel("general", "General", &[user_id.clone()], &user_id)
+            .create_channel("general", &user_id.clone(), &user_id)
             .await
         {
             Ok(_) => {
-                // Add the newly created channel
                 channels.push(ChannelData {
                     id: "general".to_string(),
                     type_: "team".to_string(),
