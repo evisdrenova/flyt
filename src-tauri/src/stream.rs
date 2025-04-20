@@ -2,10 +2,8 @@
 use crate::auth::StreamChatClient;
 use crate::config::Config;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use tauri::ipc::Channel;
 use tauri::State;
 
 // Store active user sessions

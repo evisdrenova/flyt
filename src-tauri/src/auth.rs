@@ -9,6 +9,7 @@ use sha2::Sha256;
 use std::time::UNIX_EPOCH;
 use std::time::{Duration, SystemTime};
 use std::{collections::HashMap, env};
+use tauri::http::{HeaderMap, HeaderValue};
 use uuid::Uuid;
 
 const DEFAULT_BASE_URL: &str = "https://chat.stream-io-api.com";
@@ -175,76 +176,76 @@ impl StreamChatClient {
         self.execute_request(reqwest::Method::GET, "/channels", None, Some(query))
             .await
     }
+
+    // Create default headers for API requests
+    fn create_headers(&self) -> Result<HeaderMap> {
+        let mut headers = HeaderMap::new();
+
+        // Add common headers
+        headers.insert("Content-type", HeaderValue::from_static("application/json"));
+        headers.insert("Stream-Auth-Type", HeaderValue::from_static("jwt"));
+        headers.insert(
+            "X-Stream-Client",
+            HeaderValue::from_static("stream-chat-rust-client-1.0.0"),
+        );
+
+        // Add API key header
+        let api_key_value = HeaderValue::from_str(&self.api_key)?;
+        headers.insert("X-Stream-API-Key", api_key_value);
+
+        // Add auth token
+        let auth_value = HeaderValue::from_str(&format!("Bearer {}", self.auth_token))?;
+        headers.insert("Authorization", auth_value);
+
+        Ok(headers)
+    }
+
+    // Execute a request and parse the response
+    async fn execute_request<T: for<'de> Deserialize<'de>>(
+        &self,
+        method: reqwest::Method,
+        path: &str,
+        body: Option<Value>,
+        query: Option<Vec<(String, String)>>,
+    ) -> Result<T> {
+        let url = format!("{}{}", self.base_url, path);
+
+        let headers = self.create_headers()?;
+
+        let mut request_builder = self.client.request(method, &url).headers(headers);
+
+        // Add query parameters if provided
+        if let Some(params) = query {
+            for (key, value) in params {
+                request_builder = request_builder.query(&[(key, value)]);
+            }
+        }
+
+        // Add body if provided
+        if let Some(json_body) = body {
+            request_builder = request_builder.json(&json_body);
+        }
+
+        // Execute the request
+        let response = request_builder.send().await?;
+
+        // Handle error status codes
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await?;
+            return Err(anyhow!(
+                "API request failed with status {}: {}",
+                status,
+                error_text
+            ));
+        }
+
+        // Parse response body
+        let result = response.json::<T>().await?;
+
+        Ok(result)
+    }
 }
-
-// // Create default headers for API requests
-// fn create_headers(&self) -> Result<HeaderMap> {
-//     let mut headers = HeaderMap::new();
-
-//     // Add common headers
-//     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-//     headers.insert("Stream-Auth-Type", HeaderValue::from_static("jwt"));
-//     headers.insert(
-//         "X-Stream-Client",
-//         HeaderValue::from_static("stream-chat-rust-client-1.0.0"),
-//     );
-
-//     // Add API key header
-//     let api_key_value = HeaderValue::from_str(&self.api_key)?;
-//     headers.insert("X-Stream-API-Key", api_key_value);
-
-//     // Add auth token
-//     let auth_value = HeaderValue::from_str(&format!("Bearer {}", self.auth_token))?;
-//     headers.insert(AUTHORIZATION, auth_value);
-
-//     Ok(headers)
-// }
-
-// // Execute a request and parse the response
-// async fn execute_request<T: for<'de> Deserialize<'de>>(
-//     &self,
-//     method: reqwest::Method,
-//     path: &str,
-//     body: Option<Value>,
-//     query: Option<Vec<(String, String)>>,
-// ) -> Result<T> {
-//     let url = format!("{}{}", self.base_url, path);
-
-//     let headers = self.create_headers()?;
-
-//     let mut request_builder = self.client.request(method, &url).headers(headers);
-
-//     // Add query parameters if provided
-//     if let Some(params) = query {
-//         for (key, value) in params {
-//             request_builder = request_builder.query(&[(key, value)]);
-//         }
-//     }
-
-//     // Add body if provided
-//     if let Some(json_body) = body {
-//         request_builder = request_builder.json(&json_body);
-//     }
-
-//     // Execute the request
-//     let response = request_builder.send().await?;
-
-//     // Handle error status codes
-//     if !response.status().is_success() {
-//         let status = response.status();
-//         let error_text = response.text().await?;
-//         return Err(anyhow!(
-//             "API request failed with status {}: {}",
-//             status,
-//             error_text
-//         ));
-//     }
-
-//     // Parse response body
-//     let result = response.json::<T>().await?;
-
-//     Ok(result)
-// }
 
 // // Get all channels for a user
 // pub async fn get_user_channels(&self, user_id: &str) -> Result<Value> {
