@@ -56,7 +56,7 @@ export default function App() {
       console.log("user authenticated, initializing chat", client_config);
 
       // Initialize chat client with the config from backend
-      const client = StreamChat.getInstance(client_config.user_token);
+      const client = StreamChat.getInstance(client_config.api_key);
 
       console.log("getting user token", client_config.user_token);
 
