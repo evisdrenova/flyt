@@ -17,13 +17,9 @@ pub struct AppState {
 pub struct ChannelData {
     pub name: String,
     pub members: Vec<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ClientConfig {
-    pub api_key: String,
-    pub user_token: String,
-    pub channels: Vec<ChannelData>,
+    pub id: String,
+    #[serde(rename = "type")]
+    pub type_: String, // rename from "type" to avoid keyword conflict
 }
 
 #[derive(Serialize)]
@@ -38,16 +34,30 @@ pub struct AuthRequest {
 }
 
 #[derive(Debug, Serialize)]
+pub struct ClientConfig {
+    pub api_key: String,
+    pub user_token: String,
+    pub channels: Vec<ChannelInfo>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct LoginResponse {
     pub user_id: String,
     pub client_config: ClientConfig,
 }
+#[derive(Debug, Serialize)]
+pub struct ChannelInfo {
+    pub id: String,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub members: Vec<String>,
+}
 
 // Parse channel data from Stream API response
-fn parse_channel_data(value: &serde_json::Value) -> Vec<ChannelData> {
+fn parse_channel_data(value: &serde_json::Value) -> Vec<ChannelInfo> {
     let mut channels = Vec::new();
 
-    // Parse channels from response
     if let Some(channels_array) = value.get("channels").and_then(|v| v.as_array()) {
         for channel in channels_array {
             if let (Some(id), Some(channel_type), Some(name)) = (
@@ -55,25 +65,23 @@ fn parse_channel_data(value: &serde_json::Value) -> Vec<ChannelData> {
                 channel.get("type").and_then(|v| v.as_str()),
                 channel.get("name").and_then(|v| v.as_str()),
             ) {
-                // Extract members
-                let members = if let Some(members_obj) = channel.get("members") {
-                    if let Some(members_arr) = members_obj.as_array() {
-                        members_arr
-                            .iter()
+                let members = channel
+                    .get("members")
+                    .and_then(|m| m.as_array())
+                    .map(|arr| {
+                        arr.iter()
                             .filter_map(|m| {
                                 m.get("user_id")
                                     .and_then(|id| id.as_str())
                                     .map(String::from)
                             })
                             .collect()
-                    } else {
-                        Vec::new()
-                    }
-                } else {
-                    Vec::new()
-                };
+                    })
+                    .unwrap_or_default();
 
-                channels.push(ChannelData {
+                channels.push(ChannelInfo {
+                    id: id.to_string(),
+                    type_: channel_type.to_string(),
                     name: name.to_string(),
                     members,
                 });
@@ -134,14 +142,15 @@ pub async fn login_and_initialize(
 
     // If no channels exist, create a default one
     if channels.is_empty() {
-        match client
-            .create_channel("general", &user_id.clone(), &user_id)
-            .await
-        {
-            Ok(_) => {
-                channels.push(ChannelData {
-                    name: "General".to_string(),
-                    members: vec![user_id.clone()],
+        match client.create_channel("general", &user_id, &user_id).await {
+            Ok(channel) => {
+                let member_ids = channel.members.into_iter().map(|m| m.user_id).collect();
+
+                channels.push(ChannelInfo {
+                    id: channel.id,
+                    type_: channel.type_,
+                    name: channel.name,
+                    members: member_ids,
                 });
             }
             Err(e) => {

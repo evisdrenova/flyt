@@ -95,6 +95,7 @@ export default function App() {
       // Join the first channel or general if available
       if (userChannels.length > 0) {
         const defaultChannel = userChannels[0];
+        console.log("default channle", defaultChannel);
         const channel = client.channel(defaultChannel.type, defaultChannel.id, {
           name: defaultChannel.name,
           members: defaultChannel.members,

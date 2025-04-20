@@ -24,21 +24,66 @@ pub struct StreamChatClient {
     pub auth_token: String,
 }
 
+// #[derive(Debug, Serialize, Deserialize)]
+// struct ChannelData {
+//     pub created_by_id: String,
+//     pub name: String,
+// }
+
+// #[derive(Debug, Serialize, Deserialize)]
+// struct ChannelMember {
+//     pub user_id: String,
+// }
+
+// #[derive(Debug, Serialize, Deserialize)]
+// struct CreateChannelRequest {
+//     pub data: ChannelData,
+//     pub members: ChannelMember,
+// }
+
+// #[derive(Debug, Serialize, Deserialize)]
+// struct CreateChannelResponse {
+//     pub id: String,
+//     #[serde(rename = "type")]
+//     pub type_: String, // rename from "type" to avoid keyword conflict
+//     pub members: Vec<ChannelMember>,
+//     pub name: String,
+// }
+
+// #[derive(Debug, Serialize, Deserialize)]
+// struct CreateChannelApiResponse {
+//     pub channel: CreateChannelResponse,
+// }
+
 #[derive(Debug, Serialize, Deserialize)]
-struct ChannelData {
-    created_by_id: String,
-    name: String,
+pub struct CreateChannelRequest {
+    pub data: CreateChannelRequestData,
+    pub members: Vec<ChannelMember>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct ChannelMember {
-    user_id: String,
+pub struct CreateChannelRequestData {
+    pub name: String,
+    pub created_by_id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct CreateChannelRequest {
-    data: ChannelData,
-    members: ChannelMember,
+pub struct ChannelMember {
+    pub user_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateChannelResponse {
+    pub id: String,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub members: Vec<ChannelMember>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateChannelApiResponse {
+    pub channel: CreateChannelResponse,
 }
 
 impl StreamChatClient {
@@ -137,25 +182,29 @@ impl StreamChatClient {
         channel_name: &str,
         member: &str,
         created_by_id: &str,
-    ) -> Result<Value> {
+    ) -> Result<CreateChannelResponse> {
         let path = format!("/channels/messaging/{}/query", channel_name);
 
-        // Create the payload using the struct
+        // Create the payload using the updated struct
         let payload = CreateChannelRequest {
-            data: ChannelData {
+            data: CreateChannelRequestData {
                 created_by_id: created_by_id.to_string(),
                 name: channel_name.to_string(),
             },
-            members: ChannelMember {
+            members: vec![ChannelMember {
                 user_id: member.to_string(),
-            },
+            }],
         };
 
         // Convert the struct to a JSON value
         let payload_json = serde_json::to_value(payload)?;
 
-        self.execute_request(reqwest::Method::POST, &path, Some(payload_json), None)
-            .await
+        // Send the request and deserialize the response
+        let response: CreateChannelApiResponse = self
+            .execute_request(reqwest::Method::POST, &path, Some(payload_json), None)
+            .await?;
+
+        Ok(response.channel)
     }
 
     // Get all channels for a user
