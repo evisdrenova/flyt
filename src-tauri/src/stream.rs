@@ -63,22 +63,8 @@ pub struct LoginResponse {
     pub client_config: ClientConfig,
 }
 
-// =========== Helper Functions ===========
-
-// Get user ID from username, creating a new one if needed
-fn get_or_create_user_id(users: &mut HashMap<String, String>, username: &str) -> String {
-    match users.get(username) {
-        Some(id) => id.clone(),
-        None => {
-            let new_id = generate_user_id(username);
-            users.insert(username.to_string(), new_id.clone());
-            new_id
-        }
-    }
-}
-
 // Parse channel data from Stream API response
-fn parse_channel_data(value: &serde_json::Value, user_id: &str) -> Vec<ChannelData> {
+fn parse_channel_data(value: &serde_json::Value) -> Vec<ChannelData> {
     let mut channels = Vec::new();
 
     // Parse channels from response
@@ -117,16 +103,6 @@ fn parse_channel_data(value: &serde_json::Value, user_id: &str) -> Vec<ChannelDa
         }
     }
 
-    // If no channels found, add a default one
-    if channels.is_empty() {
-        channels.push(ChannelData {
-            id: "general".to_string(),
-            type_: "team".to_string(),
-            name: "General".to_string(),
-            members: vec![user_id.to_string()],
-        });
-    }
-
     channels
 }
 
@@ -143,18 +119,18 @@ pub async fn login_and_initialize(
         return Err("Username cannot be empty".into());
     }
 
-    // Get user ID
-    let user_id = {
-        let mut users = state.users.lock().unwrap();
-        get_or_create_user_id(&mut users, username)
-    };
-
     // Initialize Stream client
     let mut client = StreamChatClient::initialize(
         &state.config.stream_api_key,
         &state.config.stream_api_secret,
     )
     .map_err(|e| format!("Failed to initialize Stream client: {}", e))?;
+
+    // Get user ID
+    let user_id = {
+        let mut users = state.users.lock().unwrap();
+        client.get_or_create_user_id(&mut users, username)
+    };
 
     // Create user token
     let token = client
@@ -176,7 +152,7 @@ pub async fn login_and_initialize(
         .map_err(|e| format!("Failed to get user channels: {}", e))?;
 
     // Parse channels from result
-    let mut channels = parse_channel_data(&channels_result, &user_id);
+    let mut channels = parse_channel_data(&channels_result);
 
     // If no channels exist, create a default one
     if channels.is_empty() {
@@ -184,7 +160,7 @@ pub async fn login_and_initialize(
             .create_channel("general", "General", &[user_id.clone()], &user_id)
             .await
         {
-            Ok(channel_data) => {
+            Ok(_) => {
                 // Add the newly created channel
                 channels.push(ChannelData {
                     id: "general".to_string(),

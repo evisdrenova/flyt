@@ -4,6 +4,7 @@ use hmac::{Hmac, Mac};
 use jwt::SignWithKey;
 use reqwest::Client;
 use serde::Deserialize;
+use serde_json::{json, Value};
 use sha2::Sha256;
 use std::time::UNIX_EPOCH;
 use std::time::{Duration, SystemTime};
@@ -19,7 +20,7 @@ pub struct StreamChatClient {
     api_secret: String,
     base_url: String,
     client: Client,
-    auth_token: String,
+    pub auth_token: String,
 }
 
 // Response is a common response type from Stream API
@@ -51,6 +52,30 @@ impl StreamChatClient {
             client,
             auth_token: String::new(), // Empty initially
         })
+    }
+
+    // Get user ID from username, creating a new one if needed
+    pub fn get_or_create_user_id(
+        &self,
+        users: &mut HashMap<String, String>,
+        username: &str,
+    ) -> String {
+        match users.get(username) {
+            Some(id) => id.clone(),
+            None => {
+                let new_id = self.generate_user_id(username);
+                users.insert(username.to_string(), new_id.clone());
+                new_id
+            }
+        }
+    }
+
+    fn generate_user_id(&self, username: &str) -> String {
+        // Using a namespace UUID to generate deterministic UUIDs based on username
+        // This ensures the same username always gets the same ID
+        let namespace = Uuid::parse_str("6ba7b810-9dad-11d1-80b4-00c04fd430c8").unwrap();
+        let user_id = uuid::Uuid::new_v5(&namespace, username.as_bytes());
+        user_id.to_string()
     }
 
     // Create a JWT token for authentication
@@ -108,14 +133,6 @@ impl StreamChatClient {
         Ok(token)
     }
 
-    fn generate_user_id(&self, username: &str) -> String {
-        // Using a namespace UUID to generate deterministic UUIDs based on username
-        // This ensures the same username always gets the same ID
-        let namespace = Uuid::parse_str("6ba7b810-9dad-11d1-80b4-00c04fd430c8").unwrap();
-        let user_id = uuid::Uuid::new_v5(&namespace, username.as_bytes());
-        user_id.to_string()
-    }
-
     // Verify webhook signature
     pub fn verify_webhook(body: &[u8], signature: &[u8], api_secret: &str) -> bool {
         let mut mac = Hmac::<Sha256>::new_from_slice(api_secret.as_bytes()).unwrap();
@@ -125,6 +142,38 @@ impl StreamChatClient {
         let signature_str = std::str::from_utf8(signature).unwrap_or("");
 
         expected_signature == signature_str
+    }
+
+    // Create a new channel
+    pub async fn create_channel(
+        &self,
+        channel_id: &str,
+        channel_name: &str,
+        members: &[String],
+        created_by_id: &str,
+    ) -> Result<Value> {
+        let path = format!("/channels/team/{}", channel_id);
+
+        let payload = json!({
+            "created_by_id": created_by_id,
+            "name": channel_name,
+            "members": members
+        });
+
+        self.execute_request(reqwest::Method::POST, &path, Some(payload), None)
+            .await
+    }
+
+    // Get all channels for a user
+    pub async fn get_user_channels(&self, user_id: &str) -> Result<Value> {
+        let query = vec![
+            ("user_id".to_string(), user_id.to_string()),
+            ("presence".to_string(), "true".to_string()),
+            ("state".to_string(), "true".to_string()),
+        ];
+
+        self.execute_request(reqwest::Method::GET, "/channels", None, Some(query))
+            .await
     }
 }
 
@@ -206,26 +255,6 @@ impl StreamChatClient {
 //     ];
 
 //     self.execute_request(reqwest::Method::GET, "/channels", None, Some(query))
-//         .await
-// }
-
-// // Create a new channel
-// pub async fn create_channel(
-//     &self,
-//     channel_id: &str,
-//     channel_name: &str,
-//     members: &[String],
-//     created_by_id: &str,
-// ) -> Result<Value> {
-//     let path = format!("/channels/team/{}", channel_id);
-
-//     let payload = json!({
-//         "created_by_id": created_by_id,
-//         "name": channel_name,
-//         "members": members
-//     });
-
-//     self.execute_request(reqwest::Method::POST, &path, Some(payload), None)
 //         .await
 // }
 
