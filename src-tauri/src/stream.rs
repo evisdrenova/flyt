@@ -13,7 +13,7 @@ pub struct AppState {
 }
 
 // =========== Type Definitions ===========
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct ChannelData {
     pub id: String,
     pub type_: String, // 'type' is a keyword in Rust
@@ -22,7 +22,7 @@ pub struct ChannelData {
     pub members: Vec<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct ClientConfig {
     pub api_key: String,
     pub user_token: String,
@@ -40,7 +40,7 @@ pub struct AuthRequest {
     pub username: String,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct LoginResponse {
     pub user_id: String,
     pub client_config: ClientConfig,
@@ -54,7 +54,7 @@ fn parse_channel_data(value: &serde_json::Value) -> Vec<ChannelData> {
     if let Some(channels_array) = value.get("channels").and_then(|v| v.as_array()) {
         for channel in channels_array {
             if let (Some(id), Some(channel_type), Some(name)) = (
-                channel.get("id").and_then(|v| v.as_str()),
+                channel.get("cid").and_then(|v| v.as_str()),
                 channel.get("type").and_then(|v| v.as_str()),
                 channel.get("name").and_then(|v| v.as_str()),
             ) {
@@ -120,14 +120,10 @@ pub async fn login_and_initialize(
         .create_user_token(&user_id)
         .map_err(|e| format!("Failed to create token: {}", e))?;
 
-    println!("user token: {}", user_token);
-
     // Create server token for API calls
     let server_token = client
         .create_server_token()
         .map_err(|e| format!("Failed to create server token: {}", e))?;
-
-    println!("server token: {}", server_token);
 
     // Set the server token for API calls
     client.auth_token = server_token;
@@ -137,6 +133,8 @@ pub async fn login_and_initialize(
         .get_user_channels(&user_id)
         .await
         .map_err(|e| format!("Failed to get user channels: {}", e))?;
+
+    println!("get user channels: {:?}", channels_result);
 
     // Parse channels from result
     let mut channels = parse_channel_data(&channels_result);
@@ -158,13 +156,6 @@ pub async fn login_and_initialize(
             }
             Err(e) => {
                 println!("Error creating default channel: {}", e);
-                // Still add a default channel to the list even if API call fails
-                channels.push(ChannelData {
-                    id: "general".to_string(),
-                    type_: "team".to_string(),
-                    name: "General".to_string(),
-                    members: vec![user_id.clone()],
-                });
             }
         }
     }
@@ -176,13 +167,17 @@ pub async fn login_and_initialize(
         channels,
     };
 
-    Ok(LoginResponse {
+    let lg = LoginResponse {
         user_id,
         client_config,
-    })
+    };
+
+    println!("the lg: {:?}", lg);
+
+    Ok(lg)
 }
 
-// Create a new channel
+// //Create a new channel
 // #[tauri::command]
 // pub async fn create_channel(
 //     state: State<'_, AppState>,
@@ -213,26 +208,4 @@ pub async fn login_and_initialize(
 //         name: request.channel_name,
 //         members: request.members,
 //     })
-// }
-
-// Send a message to a channel
-// #[tauri::command]
-// pub async fn send_message(
-//     state: State<'_, AppState>,
-//     request: SendMessageRequest,
-// ) -> Result<(), String> {
-//     // Initialize Stream Chat client
-//     let client = StreamChatClient::new(
-//         &state.config.stream_api_key,
-//         &state.config.stream_api_secret,
-//     )
-//     .map_err(|e| format!("Failed to initialize Stream client: {}", e))?;
-
-//     // Send the message
-//     client
-//         .send_message(&request.channel_id, &request.user_id, &request.message)
-//         .await
-//         .map_err(|e| format!("Failed to send message: {}", e))?;
-
-//     Ok(())
 // }

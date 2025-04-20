@@ -44,35 +44,53 @@ export default function App() {
       setIsLoading(true);
 
       // Call to Tauri backend to authenticate user, get token, and client config
-      const { userId, clientConfig } = await invoke<{
-        userId: string;
-        clientConfig: ClientConfig;
+      const { user_id, client_config } = await invoke<{
+        client_config: ClientConfig;
+        user_id: string;
       }>("login_and_initialize", {
         request: {
           username: username,
         },
       });
 
-      console.log("user authenticated, initializing chat");
+      console.log("user authenticated, initializing chat", client_config);
 
       // Initialize chat client with the config from backend
-      const client = StreamChat.getInstance(clientConfig.apiKey);
+      const client = StreamChat.getInstance(client_config.user_token);
+
+      console.log("getting client");
+
+      console.log("the use id", user_id);
 
       // Connect user with the token
       await client.connectUser(
         {
-          id: userId,
+          id: user_id,
           name: username,
         },
-        clientConfig.userToken
+        client_config.user_token
       );
 
+      console.log("Connected user");
+
       setChatClient(client);
-      setUserId(userId);
+      setUserId(user_id);
 
       // Get channels for the user
-      const userChannels = clientConfig.channels;
-      setChannels(userChannels);
+      const userChannels = client_config.channels;
+
+      console.log("channel", userChannels);
+
+      const channels = userChannels.map((c) => {
+        const sChannels: ChannelData = {
+          blocked: false,
+          members: c.members,
+          name: c.name,
+        };
+
+        return sChannels;
+      });
+      setChannels(channels);
 
       // Join the first channel or general if available
       if (userChannels.length > 0) {
@@ -94,41 +112,41 @@ export default function App() {
     }
   }
 
-  async function handleCreateChannel(channelName: string) {
-    if (!channelName.trim() || !chatClient || !userId) return;
+  // async function handleCreateChannel(channelName: string) {
+  //   if (!channelName.trim() || !chatClient || !userId) return;
 
-    const channelId = channelName.toLowerCase().replace(/\s+/g, "-");
+  //   const channelId = channelName.toLowerCase().replace(/\s+/g, "-");
 
-    try {
-      // Create channel via backend
-      const newChannelData = await invoke<ChannelData>("create_channel", {
-        request: {
-          channelId,
-          channelName,
-          userId,
-        },
-      });
+  //   try {
+  //     // Create channel via backend
+  //     const newChannelData = await invoke<ChannelData>("create_channel", {
+  //       request: {
+  //         channelId,
+  //         channelName,
+  //         userId,
+  //       },
+  //     });
 
-      // Connect to the new channel via Stream Chat SDK
-      const newChannel = chatClient.channel(
-        newChannelData.type,
-        newChannelData.id,
-        {
-          name: newChannelData.name,
-          members: newChannelData.members,
-        }
-      );
+  //     // Connect to the new channel via Stream Chat SDK
+  //     const newChannel = chatClient.channel(
+  //       newChannelData.type,
+  //       newChannelData.id,
+  //       {
+  //         name: newChannelData.name,
+  //         members: newChannelData.members,
+  //       }
+  //     );
 
-      await newChannel.watch();
-      setCurrentChannel(newChannel);
+  //     await newChannel.watch();
+  //     setCurrentChannel(newChannel);
 
-      // Add to local channels list
-      setChannels([...channels, newChannelData]);
-    } catch (err) {
-      console.error("Failed to create channel:", err);
-      // Show error to user
-    }
-  }
+  //     // Add to local channels list
+  //     setChannels([...channels, newChannelData]);
+  //   } catch (err) {
+  //     console.error("Failed to create channel:", err);
+  //     // Show error to user
+  //   }
+  // }
 
   // Handle cleanup on component unmount
   React.useEffect(() => {
@@ -186,7 +204,7 @@ export default function App() {
                 );
               }}
             />
-            <div className="create-channel">
+            {/* <div className="create-channel">
               <button
                 onClick={() => {
                   const name = prompt("Enter channel name:");
@@ -195,7 +213,7 @@ export default function App() {
               >
                 + New Channel
               </button>
-            </div>
+            </div> */}
           </div>
 
           {currentChannel && (

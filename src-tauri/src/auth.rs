@@ -31,7 +31,6 @@ impl StreamChatClient {
             return Err(anyhow!("API key or secret is empty"));
         }
 
-        // Set up HTTP client
         let client = Client::builder()
             .timeout(DEFAULT_TIMEOUT)
             .pool_idle_timeout(Duration::from_secs(59))
@@ -71,7 +70,7 @@ impl StreamChatClient {
         user_id.to_string()
     }
 
-    // Create a JWT token for authentication
+    // Create a user token taht we can use on the front end to chat
     pub fn create_user_token(&self, user_id: &str) -> Result<String> {
         if user_id.is_empty() {
             return Err(anyhow!("User ID is empty"));
@@ -80,7 +79,6 @@ impl StreamChatClient {
         let mut claims = HashMap::new();
         claims.insert("user_id".to_string(), user_id.to_string());
 
-        // Add current time as issued time
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|e| anyhow!("Time error: {}", e))?
@@ -88,11 +86,10 @@ impl StreamChatClient {
 
         claims.insert("iat".to_string(), now.to_string());
 
-        // Default expiration: 14 days
+        // 14 days
         let expiration = now + (14 * 24 * 60 * 60);
         claims.insert("exp".to_string(), expiration.to_string());
 
-        // Create token
         let key: Hmac<Sha256> =
             Hmac::new_from_slice(self.api_secret.as_bytes()).map_err(|_| anyhow!("Invalid key"))?;
 
@@ -119,7 +116,6 @@ impl StreamChatClient {
 
         println!("claims:{:?}", claims);
 
-        // Create and sign the token
         let key: Hmac<Sha256> =
             Hmac::new_from_slice(self.api_secret.as_bytes()).map_err(|_| anyhow!("Invalid key"))?;
 
@@ -238,18 +234,6 @@ impl StreamChatClient {
         Ok(result)
     }
 }
-
-// // Get all channels for a user
-// pub async fn get_user_channels(&self, user_id: &str) -> Result<Value> {
-//     let query = vec![
-//         ("user_id".to_string(), user_id.to_string()),
-//         ("presence".to_string(), "true".to_string()),
-//         ("state".to_string(), "true".to_string()),
-//     ];
-
-//     self.execute_request(reqwest::Method::GET, "/channels", None, Some(query))
-//         .await
-// }
 
 // // Send a message to a channel
 // pub async fn send_message(&self, channel_id: &str, user_id: &str, text: &str) -> Result<Value> {

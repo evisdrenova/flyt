@@ -37,11 +37,12 @@ export interface ChannelData {
   members: string[];
   created_at?: string;
   updated_at?: string;
+  blocked?: boolean;
 }
 
 export interface ClientConfig {
-  apiKey: string;
-  userToken: string;
+  api_key: string;
+  user_token: string;
   channels: ChannelData[];
 }
 
