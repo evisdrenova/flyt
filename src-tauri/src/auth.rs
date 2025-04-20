@@ -24,14 +24,6 @@ pub struct StreamChatClient {
     pub auth_token: String,
 }
 
-// Response is a common response type from Stream API
-#[derive(Debug, Deserialize)]
-pub struct Response {
-    pub duration: String,
-    pub message: Option<String>,
-    pub more_info: Option<String>,
-}
-
 impl StreamChatClient {
     // Create a new client
     pub fn initialize(api_key: &str, api_secret: &str) -> Result<Self> {
@@ -115,13 +107,17 @@ impl StreamChatClient {
         let mut claims = HashMap::new();
         claims.insert("server".to_string(), "true".to_string());
 
-        // Add current time as issued at time
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_err(|e| anyhow!("Time error: {}", e))?
-            .as_secs();
+        // claims.insert("typ".to_string(), "JWT".to_string());
 
-        claims.insert("iat".to_string(), now.to_string());
+        // // Add current time as issued at time
+        // let now = SystemTime::now()
+        //     .duration_since(UNIX_EPOCH)
+        //     .map_err(|e| anyhow!("Time error: {}", e))?
+        //     .as_secs();
+
+        // claims.insert("iat".to_string(), now);
+
+        println!("claims:{:?}", claims);
 
         // Create and sign the token
         let key: Hmac<Sha256> =
@@ -173,7 +169,7 @@ impl StreamChatClient {
             ("state".to_string(), "true".to_string()),
         ];
 
-        self.execute_request(reqwest::Method::GET, "/channels", None, Some(query))
+        self.execute_request(reqwest::Method::POST, "/channels", None, Some(query))
             .await
     }
 
@@ -184,17 +180,13 @@ impl StreamChatClient {
         // Add common headers
         headers.insert("Content-type", HeaderValue::from_static("application/json"));
         headers.insert("Stream-Auth-Type", HeaderValue::from_static("jwt"));
-        headers.insert(
-            "X-Stream-Client",
-            HeaderValue::from_static("stream-chat-rust-client-1.0.0"),
-        );
 
         // Add API key header
         let api_key_value = HeaderValue::from_str(&self.api_key)?;
-        headers.insert("X-Stream-API-Key", api_key_value);
+        headers.insert("api_key", api_key_value);
 
         // Add auth token
-        let auth_value = HeaderValue::from_str(&format!("Bearer {}", self.auth_token))?;
+        let auth_value = HeaderValue::from_str(&self.auth_token)?;
         headers.insert("Authorization", auth_value);
 
         Ok(headers)

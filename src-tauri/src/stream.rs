@@ -40,21 +40,6 @@ pub struct AuthRequest {
     pub username: String,
 }
 
-#[derive(Deserialize)]
-pub struct SendMessageRequest {
-    pub channel_id: String,
-    pub message: String,
-    pub user_id: String,
-}
-
-#[derive(Deserialize)]
-pub struct CreateChannelRequest {
-    pub channel_id: String,
-    pub channel_name: String,
-    pub members: Vec<String>,
-    pub user_id: String,
-}
-
 #[derive(Serialize)]
 pub struct LoginResponse {
     pub user_id: String,
@@ -131,14 +116,18 @@ pub async fn login_and_initialize(
     };
 
     // Create user token
-    let token = client
+    let user_token = client
         .create_user_token(&user_id)
         .map_err(|e| format!("Failed to create token: {}", e))?;
+
+    println!("user token: {}", user_token);
 
     // Create server token for API calls
     let server_token = client
         .create_server_token()
         .map_err(|e| format!("Failed to create server token: {}", e))?;
+
+    println!("server token: {}", server_token);
 
     // Set the server token for API calls
     client.auth_token = server_token;
@@ -183,7 +172,7 @@ pub async fn login_and_initialize(
     // Create client config to return to frontend
     let client_config = ClientConfig {
         api_key: state.config.stream_api_key.clone(),
-        user_token: token,
+        user_token: user_token,
         channels,
     };
 
