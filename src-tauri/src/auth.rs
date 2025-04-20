@@ -121,18 +121,6 @@ impl StreamChatClient {
         let mut claims = HashMap::new();
         claims.insert("server".to_string(), "true".to_string());
 
-        // claims.insert("typ".to_string(), "JWT".to_string());
-
-        // // Add current time as issued at time
-        // let now = SystemTime::now()
-        //     .duration_since(UNIX_EPOCH)
-        //     .map_err(|e| anyhow!("Time error: {}", e))?
-        //     .as_secs();
-
-        // claims.insert("iat".to_string(), now);
-
-        println!("claims:{:?}", claims);
-
         let key: Hmac<Sha256> =
             Hmac::new_from_slice(self.api_secret.as_bytes()).map_err(|_| anyhow!("Invalid key"))?;
 
@@ -141,17 +129,6 @@ impl StreamChatClient {
             .map_err(|e| anyhow!("Signing error: {}", e))?;
 
         Ok(token)
-    }
-
-    // Verify webhook signature
-    pub fn verify_webhook(body: &[u8], signature: &[u8], api_secret: &str) -> bool {
-        let mut mac = Hmac::<Sha256>::new_from_slice(api_secret.as_bytes()).unwrap();
-        mac.update(body);
-
-        let expected_signature = hex::encode(mac.finalize().into_bytes());
-        let signature_str = std::str::from_utf8(signature).unwrap_or("");
-
-        expected_signature == signature_str
     }
 
     // Create a new channel
@@ -258,18 +235,3 @@ impl StreamChatClient {
         Ok(result)
     }
 }
-
-// // Send a message to a channel
-// pub async fn send_message(&self, channel_id: &str, user_id: &str, text: &str) -> Result<Value> {
-//     let path = format!("/channels/team/{}/message", channel_id);
-
-//     let payload = json!({
-//         "message": {
-//             "text": text,
-//             "user_id": user_id
-//         }
-//     });
-
-//     self.execute_request(reqwest::Method::POST, &path, Some(payload), None)
-//         .await
-// }

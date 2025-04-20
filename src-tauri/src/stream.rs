@@ -129,8 +129,6 @@ pub async fn login_and_initialize(
         .await
         .map_err(|e| format!("Failed to get user channels: {}", e))?;
 
-    println!("get user channels: {:?}", channels_result);
-
     // Parse channels from result
     let mut channels = parse_channel_data(&channels_result);
 
